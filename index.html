@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tri-Decision-BorDeLand web | Borda · Condorcet · Copeland</title>
+<link rel="icon" type="image/png" href="https://i.ibb.co/Qjr9Qdp3/Tri-Decision-Bor-De-Land-web.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --accent-blue: #478eff;
+    --accent-blue-light: #a3d0ff;
+    --accent-blue-dark: #2854a1;
+    --text-main: #f8fafc;
+    --text-muted: #cbd5e1;
+    --danger: #fb7185;
+    --success: #4ade80;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); min-height: 100vh; color: var(--text-main); padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+
+/* Header */
+.header { text-align: center; padding: 30px 20px; background: var(--bg-card); backdrop-filter: blur(10px); border-radius: 15px; margin-bottom: 25px; border: 1px solid var(--accent-blue-dark); box-shadow: 0 5px 20px rgba(59, 130, 246, 0.2); }
+.header h1 { color: var(--accent-blue-light); font-size: 2.2em; margin-bottom: 10px; text-shadow: 0 0 20px rgba(96, 165, 250, 0.5); }
+.header p { color: var(--text-muted); font-size: 1em; }
+.header .logo { font-size: 3em; margin-bottom: 10px; color: var(--accent-blue-light); }
+
+/* Layout */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.card { background: var(--bg-card); backdrop-filter: blur(10px); border: 1px solid var(--accent-blue-dark); border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.card h2 { color: var(--accent-blue-light); margin-bottom: 20px; font-size: 1.4em; border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px; display: inline-block; }
+.card h3 { color: var(--accent-blue-light); margin: 15px 0; font-size: 1.1em; }
+
+/* Buttons */
+.btn { padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.3s ease; margin: 5px; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+.btn-primary { background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark)); color: #fff; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4); }
+.btn-secondary { background: transparent; color: var(--accent-blue-light); border: 1px solid var(--accent-blue); }
+.btn-secondary:hover { background: var(--accent-blue-dark); transform: translateY(-2px); }
+.btn-success { background: linear-gradient(135deg, var(--success), #047857); color: #fff; }
+.btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4); }
+.btn-info { background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; }
+.btn-info:hover { transform: translateY(-2px); }
+.btn-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+
+/* Menu Cards */
+.menu-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+.menu-card { background: var(--bg-secondary); border: 2px solid var(--accent-blue-dark); border-radius: 15px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+.menu-card:hover { border-color: var(--accent-blue); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3); }
+.menu-card .icon { font-size: 3em; margin-bottom: 15px; color: var(--accent-blue-light); }
+.menu-card h3 { color: var(--accent-blue-light); margin-bottom: 10px; }
+.menu-card p { color: var(--text-muted); font-size: 0.9em; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9em; }
+th, td { padding: 10px 12px; text-align: center; border: 1px solid #456291; }
+th { background: var(--accent-blue-dark); color: #fff; font-weight: 600; }
+td { background: var(--bg-secondary); color: var(--text-main); }
+td.empty-cell { background: #1e293b; color: var(--text-muted); }
+td input { width: 60px; padding: 8px; text-align: center; background: var(--bg-primary); border: 1px solid var(--accent-blue-dark); border-radius: 5px; color: var(--accent-blue-light); font-size: 1em; font-weight: bold; }
+td input:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+td input.error { border-color: var(--danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+
+/* Matrizes Intra */
+.intra-matrix { margin: 15px 0; overflow-x: auto; }
+.intra-matrix table { font-size: 0.85em; }
+.intra-matrix th, .intra-matrix td { padding: 6px 8px; min-width: 45px; }
+.val-pos { color: var(--success) !important; font-weight: 800; background:rgba(74,222,128,.06); }
+.val-neg { color: var(--danger) !important; font-weight: 800; background:rgba(251,113,133,.08); }
+.val-zero { color: #fcd34d !important; font-weight: 800; background:rgba(252,211,77,.06); }
+.dash { color: var(--text-muted); }
+
+/* Inputs Config */
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; color: var(--text-muted); margin-bottom: 5px; font-size: 0.9em; }
+.input-group input, .input-group select { width: 100%; padding: 10px 15px; background: var(--bg-primary); border: 1px solid var(--accent-blue-dark); border-radius: 8px; color: var(--text-main); font-size: 1em; }
+.input-group input:focus { outline: none; border-color: var(--accent-blue); }
+.input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+
+/* Resultados e Rankings */
+.winner { background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(30, 58, 138, 0.2)); border: 2px solid var(--accent-blue); border-radius: 10px; padding: 20px; text-align: center; margin: 15px 0; }
+.winner h3 { color: var(--accent-blue-light); font-size: 1.3em; }
+.winner .name { font-size: 1.8em; color: #fff; font-weight: bold; margin: 10px 0; }
+.ranking-item { display: flex; align-items: center; padding: 12px 20px; margin: 8px 0; background: var(--bg-secondary); border-radius: 10px; border-left: 4px solid var(--accent-blue-dark); transition: all 0.3s ease; gap: 10px; }
+.ranking-item.first { border-left-color: #fbbf24; background: rgba(251, 191, 36, 0.05); }
+.ranking-item .pos { font-size: 1.2em; font-weight: bold; color: var(--accent-blue-light); min-width: 40px; }
+.ranking-item .name { flex: 1; color: var(--text-main); }
+.ranking-item .score { color: var(--accent-blue-light); font-weight: bold; font-size: 1.1em; }
+
+/* Grafo */
+.graph-container { position: relative; width: 100%; max-width: 600px; height: 600px; margin: 20px auto; background: var(--bg-secondary); border-radius: 50%; border: 1px solid var(--accent-blue-dark); }
+.graph-node { position: absolute; width: 80px; height: 80px; background: var(--bg-primary); border: 2px solid var(--accent-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: var(--accent-blue-light); text-align: center; transform: translate(-50%,-50%); z-index: 2; transition: all 0.3s ease; }
+.graph-node.dominant { border-color: #fbbf24; color: #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+.graph-node.dominated { border-color: var(--accent-blue); color: var(--text-muted); opacity: .88; }
+.graph-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+/* Outros Elementos */
+.info-box { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); border-radius: 10px; padding: 15px; margin: 15px 0; font-size: 0.9em; color: var(--accent-blue-light); }
+.info-box.warning { background: rgba(251, 191, 36, 0.1); border-color: #fbbf24; color: #fbbf24; }
+.info-box.error { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: #fca5a5; }
+.file-upload { border: 2px dashed var(--accent-blue-dark); border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease; margin: 15px 0; }
+.file-upload:hover { border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); }
+.file-upload input[type="file"] { display: none; }
+.file-upload .icon { font-size: 2.5em; margin-bottom: 10px; color: var(--accent-blue-light); }
+.tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab { padding: 10px 20px; background: var(--bg-secondary); border: 1px solid var(--accent-blue-dark); border-radius: 8px 8px 0 0; cursor: pointer; color: var(--text-muted); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; }
+.tab.active { background: var(--accent-blue-dark); color: #fff; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.method-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.85em; margin-bottom: 10px; }
+.method-borda { background: var(--accent-blue-dark); color: #fff; }
+.method-condorcet { background: var(--accent-blue); color: #fff; }
+.method-copeland { background: #2563eb; color: #fff; }
+.download-bar { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px; flex-wrap: wrap; }
+.step-indicator { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+.step-ind { display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: var(--bg-secondary); border-radius: 20px; font-size: 0.85em; border: 1px solid var(--accent-blue-dark); }
+.step-ind .num { background: var(--accent-blue-dark); color: var(--accent-blue-light); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8em; }
+.step-ind.active { border-color: var(--accent-blue); }
+.step-ind.active .num { background: var(--accent-blue); color: #fff; }
+.step-ind.done .num { background: var(--success); color: #fff; }
+@media(max-width: 768px) { .header h1 { font-size: 1.5em; } .menu-options { grid-template-columns: 1fr; } .graph-container { height: 400px; } .graph-node { width: 60px; height: 60px; font-size: 0.65em; } th, td { padding: 6px; font-size: 0.8em; } td input { width: 45px; font-size: 0.85em; } }
+
+/* Ajustes de contraste, navegação, exemplos e desenvolvimento didático. */
+:root { --line: #44618e; --blue-contrast:#b9ddff; }
+body { background:linear-gradient(140deg,#0c1527,#162742 65%,#12213a); }
+.header, .card { border-color:#3d6096; }
+.header p, .menu-card p, .input-group label { color:#d8e1ef; }
+.card h2,.card h3 { color:var(--blue-contrast); }
+.btn-primary { background:linear-gradient(135deg,#2674ed,#244bab); }
+.btn-secondary { color:var(--blue-contrast);border-color:#669eea; }
+.btn-warning { background:#c28b25;color:#0c162a; }
+.btn-warning:hover { background:#e5ad38; }
+.method-select-card { background:#1a2b47; border:2px solid #426ba7; border-radius:14px; padding:28px; cursor:pointer; transition:.2s ease; text-align:center; }
+.method-select-card:hover,.method-select-card.selected { border-color:#a3d0ff; background:#213e66; box-shadow:0 0 0 2px rgba(163,208,255,.12); transform:translateY(-2px); }
+.method-select-card .icon { font-size:2.4em;margin-bottom:13px; }
+.method-select-card p { color:#e0eaf6;margin-top:10px; }
+button:disabled { opacity:.42; cursor:not-allowed; }
+.info-box { color:#e2f1ff; background:rgba(33,91,170,.16); border-color:#568bd2; line-height:1.65; }
+.info-box.warning { color:#ffe29d; }
+.scale-legend { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:14px; }
+.scale-item { display:flex;align-items:center;gap:10px;background:#142642;border:1px solid #365781;border-radius:8px;padding:8px 12px;color:#e2e8f0; }
+.scale-badge { width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;border-radius:7px;color:#fff;font-weight:800;background:#2c62ac; }
+.scale-badge.v1 {background:#174ea6}.scale-badge.v2 {background:#225fb7}.scale-badge.v3 {background:#387cc5}.scale-badge.v4 {background:#248aa7}.scale-badge.v5 {background:#16836a}
+.summary-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+.summary-card {background:#192b47;border:1px solid #5273a2;border-radius:12px;padding:16px;min-width:0;}
+.summary-card h4 {color:#b9ddff!important;margin-bottom:8px}
+.summary-card .value {color:#fff!important;font-weight:750;font-size:1.2em;overflow-wrap:anywhere;}
+.method-borda {background:#2457a9;}
+.method-condorcet {background:#2b70ca;}
+.tab { color:#dde8f7; border-color:#4c709f; }
+.tab.active {background:#2960b5;}
+.tab:hover {border-color:#a3d0ff;}
+.intra-matrix th {background:#244b85;}
+.intra-matrix th.row-label {background:#142844;color:#b9ddff;white-space:nowrap;}
+.intra-matrix td {background:#1a2b47;}
+.intra-matrix .val-neg {color:#ff8492!important;background:#462638!important;}
+.intra-matrix .val-pos {color:#5cef9c!important;background:#193c36!important;}
+.intra-matrix .val-zero {color:#ffe089!important;background:#473a25!important;}
+.intra-matrix .dash {color:#90a6c5;}
+.intra-matrix table {min-width:360px;}
+.step-title {display:flex;align-items:center;gap:10px;color:#b9ddff;margin:27px 0 10px;font-size:1.12em;flex-wrap:wrap;}
+.step-title .step-number {width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#2c69c7;color:white;font-size:.85em;flex-shrink:0;}
+.step-text {color:#d7e5f7;line-height:1.6;margin:6px 0 12px;}
+.comparison-list {display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 13px;}
+.comparison-chip {border:1px solid #4a6d9e;border-radius:9px;padding:8px 11px;background:#172940;font-size:.9em;color:#dfebfa;}
+.formula-block {padding:12px 15px;background:#111f35;border-left:4px solid #76b7ff;border-radius:6px;margin:8px 0 15px;color:#e8f2ff;overflow-wrap:anywhere;line-height:1.75;}
+.formula-block .val-neg,.formula-block .val-pos,.formula-block .val-zero {background:none!important;}
+.borda-formula { text-align:center; padding:18px 12px; }
+.borda-formula math { color:#f8fafc; font-size:1.45em; }
+.lesson-note {font-size:.9em;color:#bed6f3;margin:10px 0;line-height:1.6;}
+.legend-pair {display:flex;flex-wrap:wrap;gap:14px;background:#182f4c;padding:11px;border-radius:10px;margin:12px 0;}
+.legend-pair span{display:inline-flex;align-items:center;gap:5px;}
+.ranking-item .score {text-align:right;}
+.ranking-item {border-left-color:#6498dc;}
+.graph-container {aspect-ratio:1/1;height:auto;max-width:550px;background:#12213a;border:1px solid #4673b0;}
+.graph-node {overflow-wrap:anywhere;padding:5px;}
+@media(max-width:768px){.graph-container{height:auto;}.graph-node{width:58px;height:58px;font-size:.65em}.comparison-chip{width:100%;}.ranking-item{padding:11px;flex-wrap:wrap;}.ranking-item .score{text-align:left;}}
+
+/* Personalização institucional, contraste e navegação bilíngue */
+.header{position:relative;text-align:left;padding:24px 30px}
+.brand-line{display:flex;align-items:center;gap:25px;min-height:156px}
+.brand-logo-wrap{width:200px;flex-shrink:0;display:grid;place-items:center}
+.brand-logo{width:190px;max-width:100%;height:auto;display:block;mix-blend-mode:screen;filter:invert(1) hue-rotate(180deg);}
+.brand-text{flex:1;min-width:0;padding-right:130px}
+.brand-text h1{margin:0 0 12px}
+.web-suffix{color:#56d9de;font-weight:500;font-size:.75em}
+.language-switch{position:absolute;right:22px;top:20px;display:flex;gap:8px;z-index:3}
+.lang-button{display:flex;align-items:center;gap:7px;border:1px solid #5273a2;border-radius:10px;padding:7px 10px;background:#152843;color:#e1ebfa;cursor:pointer;font-weight:750;transition:.2s}
+.lang-button img{width:27px;height:18px;object-fit:cover;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+.lang-button.selected{border-color:#4ade80;background:#154936;box-shadow:0 0 0 1px #4ade80;color:white}
+.lang-button:hover{border-color:#a3d0ff}
+.tutorial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.tutorial-step{display:flex;align-items:flex-start;gap:12px;background:#142a46;border:1px solid #4d729f;border-radius:12px;padding:16px}
+.tutorial-step>span{flex:0 0 31px;height:31px;display:grid;place-items:center;border-radius:50%;color:#fff;background:#2063bd;font-weight:800}
+.tutorial-step strong{color:#eaf5ff;display:block;margin:2px 0 7px}
+.tutorial-step p{color:#cbdcf1;font-size:.9em;line-height:1.5}
+.institution-logos{display:flex;justify-content:center;align-items:center;gap:clamp(25px,8vw,130px);flex-wrap:wrap;padding:10px 0}
+.institution{display:flex;gap:18px;align-items:center;min-width:225px}
+.institution img{width:96px;height:110px;object-fit:contain}
+.institution strong{font-size:1.45em;display:block;color:#e7f4ff}
+.institution small{font-size:.85em;line-height:1.5;display:block;color:#cfddf1;max-width:175px}
+.cite-card p{line-height:1.75;color:#d8e4f3;margin-bottom:13px}
+.cite-card .citation-intro{font-weight:700;color:#b9ddff;margin-top:17px;margin-bottom:8px}
+.citation-ref{background:#10223d;border-left:4px solid #3ebdba;border-radius:8px;padding:14px 18px;color:#f3f9ff;line-height:1.75;font-weight:600;overflow-wrap:anywhere}
+.citation-actions{margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.copy-message{color:#86efac;font-size:.89em}
+.btn-danger{background:#9f3554;color:#fff;border:1px solid #d35c75}
+.btn-danger:hover{background:#ba4163;transform:translateY(-2px)}
+.results-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:15px 0}
+.results-nav-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.results-nav .btn{padding:10px 15px;margin:3px}
+.result-step-label{color:#d3e6f9;font-size:.95em;margin:11px 0}
+.tabs{gap:8px;margin-bottom:25px;border-bottom:2px solid #355d8e;padding-bottom:8px}
+.tab{border-radius:9px;padding:12px 19px;font-weight:700;background:#1b3151;border:1px solid #567aa8;color:#dceafb}
+.tab.active,.tab[aria-selected="true"]{background:#166b46!important;color:#fff!important;border:2px solid #4ade80!important;box-shadow:0 0 0 2px rgba(74,222,128,.16),0 3px 14px rgba(21,113,73,.3)}
+.tab.active::before{content:'●';font-size:.7em;color:#86efac;margin-right:2px}
+.tab:not(.active):hover{background:#244774}
+.next-method{white-space:nowrap}
+@media(max-width:850px){.brand-line{flex-direction:column;align-items:center;padding-top:28px;gap:10px}.brand-text{padding-right:0;text-align:center}.header{text-align:center;padding:18px}.language-switch{top:10px;right:12px}.brand-logo-wrap{width:155px}.brand-logo{width:155px}.results-nav{justify-content:center}.results-nav-buttons{justify-content:center}.institution{min-width:220px}}
+@media(max-width:440px){.lang-button{padding:5px 7px}.brand-text h1{font-size:1.25em}.institution-logos{gap:15px}.institution img{width:75px;height:90px}.results-nav-buttons .btn{font-size:.85em;padding:9px 10px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header class="header">
+<div class="language-switch" role="group" aria-label="Language / Idioma">
+<button type="button" id="lang-pt" class="lang-button selected" onclick="setLanguage('pt')" aria-label="Português brasileiro" title="Português"><img src="https://i.ibb.co/F0ktMmH/Brasil.png" alt="Bandeira do Brasil"> <span>PT</span></button>
+<button type="button" id="lang-en" class="lang-button" onclick="setLanguage('en')" aria-label="British English" title="English"><img src="https://i.ibb.co/s1bs2K0/United-Kingdom.png" alt="United Kingdom flag"> <span>EN</span></button>
+</div>
+<div class="brand-line">
+<div class="brand-logo-wrap"><img class="brand-logo" id="mainLogo" src="https://i.ibb.co/Qjr9Qdp3/Tri-Decision-Bor-De-Land-web.png" alt="Logomarca Tri-Decision-BorDeLand web"></div>
+<div class="brand-text"><h1>Tri-Decision-BorDeLand <span class="web-suffix">web</span></h1>
+<p>Framework de Apoio à Decisão Multicritério — Borda • Condorcet • Copeland</p></div>
+</div>
+</header>
+
+<!-- TELA INICIAL -->
+<div id="screen-home" class="screen active">
+<div class="card">
+<h2>Escolha o Modo de Aplicação</h2>
+<div class="menu-options">
+<div class="menu-card" onclick="startSingleMethod()">
+<div class="icon"><i class="fas fa-bullseye"></i></div>
+<h3>Método Individual</h3>
+<p>Aplique um método por vez (Borda, Condorcet ou Copeland)</p>
+</div>
+<div class="menu-card" onclick="startTriMethod()">
+<div class="icon"><i class="fas fa-sync-alt"></i></div>
+<h3>Os Três Métodos</h3>
+<p>Execute Borda, Condorcet e Copeland simultaneamente</p>
+</div>
+</div>
+</div>
+<div class="card welcome-info">
+<h2><i class="fas fa-route"></i> Tutorial rápido: como utilizar</h2>
+<div class="tutorial-grid">
+<div class="tutorial-step"><span>1</span><div><strong>Escolha o modo</strong><p>Selecione um método ou analise os três em conjunto.</p></div></div>
+<div class="tutorial-step"><span>2</span><div><strong>Configure o problema</strong><p>Informe quantos critérios e alternativas existem e atribua seus nomes.</p></div></div>
+<div class="tutorial-step"><span>3</span><div><strong>Preencha a matriz</strong><p>Digite notas de 1 a 5, importe um Excel ou use o exemplo da aula. Confira a direção da escala.</p></div></div>
+<div class="tutorial-step"><span>4</span><div><strong>Consulte os resultados</strong><p>Veja o cálculo passo a passo. Use “Próximo método” para navegar e exporte o PDF ou as imagens.</p></div></div>
+</div>
+</div>
+<div class="card institutional-card">
+<h2><i class="fas fa-university"></i> Instituições</h2>
+<div class="institution-logos">
+<div class="institution"><img src="https://i.ibb.co/pvyJXcc9/brasao-removebg-preview.png" alt="Brasão da Universidade Federal Fluminense" loading="lazy"><div><strong>UFF</strong><small>Universidade Federal Fluminense</small></div></div>
+<div class="institution"><img src="https://i.ibb.co/M5xdL1ZS/UFCG.png" alt="Brasão da Universidade Federal de Campina Grande" loading="lazy"><div><strong>UFCG</strong><small>Universidade Federal de Campina Grande</small></div></div>
+</div>
+</div>
+<div class="card cite-card">
+<h2><i class="fas fa-book-open"></i> Uso acadêmico e citação da ferramenta</h2>
+<p>Todos os direitos reservados. O uso não comercial (acadêmico) desta planilha é gratuito. A única coisa que se pede em troca é citar esta ferramenta quando os resultados forem utilizados em publicações.</p>
+<p class="citation-intro">Para citar a fonte:</p>
+<div class="citation-ref" id="citationText">DINIZ, Bruno Pereira; PEREIRA, Daniel Augusto de Moura; SANTOS, Marcos dos. Tri-Decision-BorDeLand web (v.1) 2026.</div>
+<div class="citation-actions"><button class="btn btn-secondary" onclick="copyCitation()"><i class="fas fa-copy"></i> <span>Copiar citação</span></button><span class="copy-message" id="copyMessage" role="status" aria-live="polite"></span></div>
+</div>
+</div>
+
+<!-- SELEÇÃO DE MÉTODO -->
+<div id="screen-method-select" class="screen">
+<div class="card">
+<h2>Selecione o Método</h2>
+<div class="info-box">
+<i class="fas fa-info-circle"></i> Escolha qual método multicritério deseja aplicar. Cada método possui uma lógica própria de ordenação.
+</div>
+<div class="menu-options" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))">
+<div class="method-select-card" id="ms-borda" onclick="selectMethod('borda')">
+<div class="icon" style="color:var(--accent-blue-light)"><i class="fas fa-vote-yea"></i></div>
+<h3 style="color:var(--accent-blue-light)">Borda</h3>
+<p>Soma dos pontos. A alternativa com <strong>menor</strong> soma vence.</p>
+</div>
+<div class="method-select-card" id="ms-condorcet" onclick="selectMethod('condorcet')">
+<div class="icon" style="color:var(--accent-blue)"><i class="fas fa-chess-knight"></i></div>
+<h3 style="color:var(--accent-blue)">Condorcet</h3>
+<p>Comparação par a par, por critério, e <strong>grafo de dominância</strong>.</p>
+</div>
+<div class="method-select-card" id="ms-copeland" onclick="selectMethod('copeland')">
+<div class="icon" style="color:var(--accent-blue-light)"><i class="fas fa-chart-bar"></i></div>
+<h3 style="color:var(--accent-blue-light)">Copeland</h3>
+<p>Diferença vitórias − derrotas. A <strong>maior</strong> pontuação vence.</p>
+</div>
+</div>
+<div class="btn-group" style="margin-top:25px">
+<button class="btn btn-secondary" onclick="goHome()"><i class="fas fa-arrow-left"></i> Voltar</button>
+<button class="btn btn-primary" onclick="confirmSingleMethod()" id="btnConfirmMethod" disabled>Confirmar e Avançar <i class="fas fa-arrow-right"></i></button>
+</div>
+</div>
+</div>
+
+<!-- CONFIGURAÇÃO -->
+<div id="screen-config" class="screen">
+<div class="card">
+<h2>Configuração do Problema</h2>
+<div class="step-indicator">
+<div class="step-ind active"><span class="num">1</span> Configuração</div>
+<div class="step-ind"><span class="num">2</span> Matriz</div>
+<div class="step-ind"><span class="num">3</span> Resultados</div>
+</div>
+<div class="input-row">
+<div class="input-group">
+<label>Número de Critérios</label>
+<input type="number" id="numCriteria" min="1" max="20" value="3" onchange="updateCriteriaInputs()">
+</div>
+<div class="input-group">
+<label>Número de Alternativas</label>
+<input type="number" id="numAlternatives" min="2" max="20" value="3" onchange="updateAlternativesInputs()">
+</div>
+</div>
+<div class="btn-group" style="justify-content:flex-start;margin:10px 0 20px">
+<button class="btn btn-info" type="button" onclick="loadLessonExample()"><i class="fas fa-graduation-cap"></i> Carregar exemplo</button>
+</div>
+<h3>Nomes dos Critérios</h3>
+<div id="criteriaNames" class="input-row"></div>
+<h3>Nomes das Alternativas</h3>
+<div id="alternativeNames" class="input-row"></div>
+<div class="btn-group" style="margin-top:25px">
+<button class="btn btn-secondary" onclick="goHome()"><i class="fas fa-arrow-left"></i> Voltar</button>
+<button class="btn btn-danger" onclick="clearConfig()"><i class="fas fa-eraser"></i> Limpar configuração</button>
+<button class="btn btn-primary" onclick="goToMatrix()">Avançar <i class="fas fa-arrow-right"></i></button>
+</div>
+</div>
+</div>
+
+<!-- MATRIZ -->
+<div id="screen-matrix" class="screen">
+<div class="card">
+<h2>Matriz de Decisão</h2>
+<div class="step-indicator">
+<div class="step-ind done"><span class="num">1</span> Configuração</div>
+<div class="step-ind active"><span class="num">2</span> Matriz</div>
+<div class="step-ind"><span class="num">3</span> Resultados</div>
+</div>
+<div id="methodBadges" style="margin-bottom:15px"></div>
+<div class="info-box">
+<strong><i class="fas fa-chart-simple"></i> Escala de avaliação:</strong> Utilize notas inteiras de <strong>1 a 5</strong> para cada alternativa em cada critério. <strong id="scaleDirection"></strong>
+<div class="scale-legend" id="scaleLegend"></div>
+</div>
+<h3>Modo de Preenchimento</h3>
+<div class="btn-group" style="justify-content:flex-start;margin-bottom:15px">
+<button class="btn btn-primary" id="btnManual" onclick="setInputMode('manual')"><i class="fas fa-pen"></i> Manual</button>
+<button class="btn btn-secondary" id="btnExcel" onclick="setInputMode('excel')"><i class="fas fa-file-excel"></i> Importar Excel</button>
+<button class="btn btn-info" onclick="downloadTemplate()"><i class="fas fa-download"></i> Baixar Modelo Excel</button>
+<button class="btn btn-secondary" id="btnLessonExample" onclick="loadLessonExample()"><i class="fas fa-graduation-cap"></i> Carregar exemplo da aula</button>
+</div>
+<div id="excelUploadSection" style="display:none">
+<div class="file-upload" onclick="document.getElementById('excelFile').click()">
+<input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
+<div class="icon"><i class="fas fa-file-excel"></i></div>
+<p>Clique para selecionar um arquivo Excel (.xlsx, .xls) ou CSV</p>
+<p class="filename" id="excelFilename"></p>
+</div>
+<div class="info-box warning">
+<strong><i class="fas fa-triangle-exclamation"></i> Formato esperado:</strong> A primeira linha deve conter os nomes dos critérios (C1, C2, ...). A primeira coluna deve conter os nomes das alternativas (A1, A2, ...). As células internas devem conter notas de 1 a 5. <br>
+<strong>Linha 1:</strong> <code>Alternativa/Critério | C1 | C2 | C3 | ...</code><br>
+<strong>Linha 2:</strong> <code>A1 | 2 | 1 | 3 | ...</code>
+</div>
+</div>
+<div id="manualMatrixSection">
+<h3>Preencha a Matriz</h3>
+<div class="intra-matrix" id="matrixContainer"></div>
+</div>
+<div class="btn-group" style="margin-top:25px">
+<button class="btn btn-secondary" onclick="goToConfig()"><i class="fas fa-arrow-left"></i> Voltar</button>
+<button class="btn btn-warning" onclick="clearMatrix()"><i class="fas fa-broom"></i> Limpar matriz</button>
+<button class="btn btn-danger" onclick="clearApplication()"><i class="fas fa-eraser"></i> Limpar aplicação</button>
+<button class="btn btn-success" onclick="calculateResults()"><i class="fas fa-rocket"></i> Calcular Resultados</button>
+</div>
+</div>
+</div>
+
+<!-- RESULTADOS -->
+<div id="screen-results" class="screen">
+<div class="card">
+<h2>Resultados</h2>
+<div class="step-indicator">
+<div class="step-ind done"><span class="num">1</span> Configuração</div>
+<div class="step-ind done"><span class="num">2</span> Matriz</div>
+<div class="step-ind active"><span class="num">3</span> Resultados</div>
+</div>
+<div class="download-bar">
+<button class="btn btn-warning" onclick="downloadAllAsPDF()"><i class="fas fa-file-pdf"></i> Baixar PDF Completo</button>
+<button class="btn btn-info" onclick="downloadAllAsImage()"><i class="fas fa-image"></i> Baixar Imagens</button>
+</div>
+<div class="results-nav results-nav-top">
+<div class="results-nav-buttons">
+<button class="btn btn-secondary" onclick="goToMatrix()"><i class="fas fa-arrow-left"></i> Voltar à Matriz</button>
+<button class="btn btn-primary" onclick="newAnalysis()"><i class="fas fa-house"></i> Nova Análise</button>
+<button class="btn btn-danger" onclick="clearApplication()"><i class="fas fa-eraser"></i> Limpar aplicação</button>
+</div>
+<button class="btn btn-success next-method" onclick="nextMethod()" id="btnNextMethodTop"><i class="fas fa-arrow-right"></i> Próximo método</button>
+</div>
+<div class="result-step-label" id="resultStepLabel" aria-live="polite"></div>
+<div class="tabs" id="resultTabs" role="tablist" aria-label="Métodos de decisão"></div>
+<div id="resultsContent"></div>
+<div class="results-nav results-nav-bottom">
+<div class="results-nav-buttons">
+<button class="btn btn-secondary" onclick="goToMatrix()"><i class="fas fa-arrow-left"></i> Voltar à Matriz</button>
+<button class="btn btn-primary" onclick="newAnalysis()"><i class="fas fa-house"></i> Nova Análise</button>
+<button class="btn btn-danger" onclick="clearApplication()"><i class="fas fa-eraser"></i> Limpar aplicação</button>
+</div>
+<button class="btn btn-success next-method" onclick="nextMethod()" id="btnNextMethodBottom"><i class="fas fa-arrow-right"></i> Próximo método</button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+// ==================== ESTADO ====================
+let state = {
+    numCriteria: 3,
+    numAlternatives: 3,
+    criteriaNames: [],
+    alternativeNames: [],
+    matrix: [],
+    selectedMethods: { borda: true, condorcet: true, copeland: true },
+    inputMode: 'manual',
+    results: null,
+    mode: 'tri',
+    singleMethod: null
+};
+
+function initState() {
+    state = {
+        numCriteria: 3,
+        numAlternatives: 3,
+        criteriaNames: ['C1', 'C2', 'C3'],
+        alternativeNames: ['A1', 'A2', 'A3'],
+        matrix: [],
+        selectedMethods: { borda: true, condorcet: true, copeland: true },
+        inputMode: 'manual',
+        results: null,
+        mode: 'tri',
+        singleMethod: null
+    };
+}
+
+// ==================== NAVEGAÇÃO ====================
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    translateUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goHome() {
+    initState();
+    document.getElementById('numCriteria').value=state.numCriteria;
+    document.getElementById('numAlternatives').value=state.numAlternatives;
+    buildConfigInputs();
+    setInputMode('manual');
+    showScreen('screen-home');
+}
+function newAnalysis(){goHome();}
+function clearApplication(){
+    if(!confirm(lang==='en' ? 'Clear the entire application and start again?' : 'Limpar toda a aplicação e começar novamente?'))return;
+    goHome();
+}
+// Limpa somente a configuração, sem abandonar esta etapa nem mudar o método escolhido.
+function clearConfig(){
+    if(!confirm(lang==='en' ? 'Clear problem setup and restore C1–C3 and A1–A3?' : 'Limpar a configuração do problema e restaurar C1–C3 e A1–A3?'))return;
+    state.numCriteria=3;
+    state.numAlternatives=3;
+    state.criteriaNames=['C1','C2','C3'];
+    state.alternativeNames=['A1','A2','A3'];
+    state.matrix=[];
+    state.results=null;
+    document.getElementById('numCriteria').value=3;
+    document.getElementById('numAlternatives').value=3;
+    buildConfigInputs();
+    setInputMode('manual');
+    translateUI();
+}
+
+function clearMatrix(){
+    if(!confirm(lang==='en' ? 'Clear every value from the decision matrix?' : 'Limpar todas as notas da matriz de decisão?'))return;
+    state.matrix=Array.from({length:state.numAlternatives},()=>Array(state.numCriteria).fill(null));
+    state.results=null;
+    buildMatrix();
+    setInputMode('manual');
+    translateUI();
+}
+
+function startSingleMethod() {
+    state.mode = 'single';
+    state.singleMethod = null;
+    document.querySelectorAll('.method-select-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('btnConfirmMethod').disabled = true;
+    showScreen('screen-method-select');
+}
+
+function startTriMethod() {
+    state.mode = 'tri';
+    state.selectedMethods = { borda: true, condorcet: true, copeland: true };
+    showScreen('screen-config');
+    buildConfigInputs();
+}
+
+function selectMethod(m) {
+    state.singleMethod = m;
+    document.querySelectorAll('.method-select-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('ms-' + m).classList.add('selected');
+    document.getElementById('btnConfirmMethod').disabled = false;
+}
+
+function confirmSingleMethod() {
+    if (!state.singleMethod) return;
+    state.selectedMethods = {
+        borda: state.singleMethod === 'borda',
+        condorcet: state.singleMethod === 'condorcet',
+        copeland: state.singleMethod === 'copeland'
+    };
+    showScreen('screen-config');
+    buildConfigInputs();
+}
+
+function goToConfig() {
+    showScreen('screen-config');
+    buildConfigInputs();
+}
+
+function goToMatrix() {
+    state.numCriteria = parseInt(document.getElementById('numCriteria').value) || 3;
+    state.numAlternatives = parseInt(document.getElementById('numAlternatives').value) || 3;
+
+    state.criteriaNames = [];
+    for (let i = 0; i < state.numCriteria; i++) {
+        const inp = document.getElementById('critName_' + i);
+        state.criteriaNames.push(inp ? (inp.value.trim() || `C${i+1}`) : `C${i+1}`);
+    }
+    state.alternativeNames = [];
+    for (let i = 0; i < state.numAlternatives; i++) {
+        const inp = document.getElementById('altName_' + i);
+        state.alternativeNames.push(inp ? (inp.value.trim() || `A${i+1}`) : `A${i+1}`);
+    }
+
+    if (state.matrix.length !== state.numAlternatives || (state.matrix[0] && state.matrix[0].length !== state.numCriteria)) {
+        state.matrix = [];
+        for (let i = 0; i < state.numAlternatives; i++) {
+            state.matrix.push(new Array(state.numCriteria).fill(3));
+        }
+    }
+
+    showScreen('screen-matrix');
+    buildMatrix();
+    buildScaleLegend();
+    buildMethodBadges();
+}
+
+function buildMethodBadges() {
+    const c = document.getElementById('methodBadges');
+    let html = '<strong style="color:var(--text-muted)">Métodos selecionados:</strong> ';
+    if (state.selectedMethods.borda) html += '<span class="method-badge method-borda"><i class="fas fa-vote-yea"></i> Borda</span> ';
+    if (state.selectedMethods.condorcet) html += '<span class="method-badge method-condorcet"><i class="fas fa-chess-knight"></i> Condorcet</span> ';
+    if (state.selectedMethods.copeland) html += '<span class="method-badge method-copeland"><i class="fas fa-chart-bar"></i> Copeland</span> ';
+    c.innerHTML = html;
+    translateUI();
+}
+
+// ==================== CONFIG ====================
+function buildConfigInputs() {
+    const numC = Math.min(20,Math.max(1,parseInt(document.getElementById('numCriteria').value)||3));
+    const numA = Math.min(20,Math.max(2,parseInt(document.getElementById('numAlternatives').value)||3));
+    if (state.criteriaNames.length === 0) {
+        for (let i=0;i<numC;i++) state.criteriaNames.push('C'+(i+1));
+    }
+    if (state.alternativeNames.length === 0) {
+        for (let i=0;i<numA;i++) state.alternativeNames.push('A'+(i+1));
+    }
+    const cd = document.getElementById('criteriaNames'); cd.innerHTML = '';
+    for (let i=0;i<numC;i++) {
+        const d = document.createElement('div'); d.className='input-group';
+        d.innerHTML = `<label>Critério ${i+1}</label><input type="text" id="critName_${i}" value="${safeHTML(state.criteriaNames[i]||'C'+(i+1))}">`;
+        cd.appendChild(d);
+    }
+    const ad = document.getElementById('alternativeNames'); ad.innerHTML = '';
+    for (let i=0;i<numA;i++) {
+        const d = document.createElement('div'); d.className='input-group';
+        d.innerHTML = `<label>Alternativa ${i+1}</label><input type="text" id="altName_${i}" value="${safeHTML(state.alternativeNames[i]||'A'+(i+1))}">`;
+        ad.appendChild(d);
+    }
+}
+
+function saveConfigFieldNames(){
+    document.querySelectorAll('[id^="critName_"]').forEach(el=>{const i=+el.id.split('_')[1];state.criteriaNames[i]=el.value;});
+    document.querySelectorAll('[id^="altName_"]').forEach(el=>{const i=+el.id.split('_')[1];state.alternativeNames[i]=el.value;});
+}
+function updateCriteriaInputs() { saveConfigFieldNames();buildConfigInputs();translateUI(); }
+function updateAlternativesInputs() { saveConfigFieldNames();buildConfigInputs();translateUI(); }
+
+// ==================== MATRIZ MANUAL ====================
+function buildMatrix() {
+    const c = document.getElementById('matrixContainer');
+    let h = '<table><tr><th>Alternativa / Critério</th>';
+    for (let j=0;j<state.numCriteria;j++) h += `<th>${state.criteriaNames[j]}</th>`;
+    h += '</tr>';
+    for (let i=0;i<state.numAlternatives;i++) {
+        h += `<tr><th style="background:var(--bg-primary);color:var(--accent-blue-light)">${state.alternativeNames[i]}</th>`;
+        for (let j=0;j<state.numCriteria;j++) {
+            const v = state.matrix[i] ? state.matrix[i][j] : 3;
+            h += `<td><input type="number" min="1" max="5" step="1" value="${v==null?'':v}" onchange="updateMatrixCell(${i},${j},this)" oninput="validateCell(this)"></td>`;
+        }
+        h += '</tr>';
+    }
+    h += '</table>';
+    c.innerHTML = h;
+}
+
+function updateMatrixCell(i,j,inp) {
+    let v = inp.value.trim()==='' ? null : Number(inp.value);
+    if(v===null){state.matrix[i][j]=null;inp.classList.add('error');return;}
+    if (!Number.isInteger(v) || v < 1) { v = 1; inp.classList.add('error'); setTimeout(()=>inp.classList.remove('error'), 1000); }
+    if (v > 5) { v = 5; inp.classList.add('error'); setTimeout(()=>inp.classList.remove('error'), 1000); }
+    inp.value = v;
+    if (!state.matrix[i]) state.matrix[i]=[];
+    state.matrix[i][j]=v;
+}
+
+function validateCell(inp) {
+    let v = Number(inp.value);
+    if (!Number.isInteger(v) || v < 1 || v > 5 || inp.value.trim()==='') {
+        inp.classList.add('error');
+    } else {
+        inp.classList.remove('error');
+    }
+}
+
+function getInputOrientation() {
+    // A aula usa 1=melhor em Borda e 5=melhor em Condorcet/Copeland.
+    // No modo conjunto usamos a escala de Borda, invertida apenas para as comparações.
+    return state.selectedMethods.borda ? 'low' : 'high';
+}
+function buildScaleLegend() {
+    const low = getInputOrientation() === 'low';
+    const exampleButton = document.getElementById('btnLessonExample');
+    if (exampleButton) exampleButton.innerHTML = '<i class="fas fa-graduation-cap"></i> Exemplo da aula: ' + (state.mode === 'single' && state.selectedMethods.borda ? 'Borda' : 'Condorcet / Copeland');
+    const labels = low
+        ? ['Muito importante / melhor', 'Importante', 'Moderado', 'Às vezes importante', 'Não é importante / pior']
+        : ['Não é importante / pior', 'Às vezes importante', 'Moderado', 'Importante', 'Muito importante / melhor'];
+    document.getElementById('scaleDirection').textContent = low
+        ? 'Nesta entrada, 1 é melhor e 5 é pior (escala Borda).'
+        : 'Nesta entrada, 5 é melhor e 1 é pior (escala Condorcet/Copeland).';
+    document.getElementById('scaleLegend').innerHTML = labels.map((name,i) =>
+        `<div class="scale-item"><span class="scale-badge v${i+1}">${i+1}</span> ${name}</div>`).join('');
+}
+
+function loadLessonExample() {
+    state.numCriteria = 4;
+    state.numAlternatives = 3;
+    state.criteriaNames = ['Custo','Câmera','Armazenamento','Duração da Bateria'];
+    state.alternativeNames = ['Samsung','Xiaomi','Iphone'];
+    state.matrix = state.mode === 'single' && state.selectedMethods.borda
+        ? [[2,3,3,3],[3,2,2,2],[5,1,1,5]]
+        : (getInputOrientation() === 'low'
+           ? [[2,4,3,3],[3,1,2,1],[5,1,1,5]] // exemplo Condorcet convertido para a escala 1=melhor
+           : [[4,2,3,3],[3,5,4,5],[1,5,5,1]]);
+    document.getElementById('numCriteria').value = 4;
+    document.getElementById('numAlternatives').value = 3;
+    buildConfigInputs(); buildMatrix(); buildScaleLegend();
+    setInputMode('manual');
+    translateUI();
+}
+
+function setInputMode(m) {
+    state.inputMode = m;
+    document.getElementById('btnManual').className = m==='manual' ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('btnExcel').className = m==='excel' ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('manualMatrixSection').style.display = m==='manual' ? 'block' : 'none';
+    document.getElementById('excelUploadSection').style.display = m==='excel' ? 'block' : 'none';
+}
+
+// ==================== EXCEL ====================
+function downloadTemplate() {
+    const numC = state.numCriteria;
+    const numA = state.numAlternatives;
+    const wsData = [];
+    const header = ['Alternativa/Critério'];
+    for (let j=0;j<numC;j++) header.push(state.criteriaNames[j]||`C${j+1}`);
+    wsData.push(header);
+    for (let i=0;i<numA;i++) {
+        const row = [state.alternativeNames[i]||`A${i+1}`];
+        for (let j=0;j<numC;j++) row.push(3);
+        wsData.push(row);
+    }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'MatrizDecisao');
+    XLSX.writeFile(wb, 'Modelo_TriDecision_BorDeLand.xlsx');
+}
+
+function handleExcelUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    document.getElementById('excelFilename').textContent = file.name;
+    const reader = new FileReader();
+    if (file.name.endsWith('.csv')) {
+        reader.onload = ev => parseCSV(ev.target.result);
+        reader.readAsText(file);
+    } else {
+        reader.onload = ev => {
+            const data = new Uint8Array(ev.target.result);
+            const wb = XLSX.read(data, {type:'array'});
+            const sh = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sh, {header:1});
+            parseExcelData(json);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const data = lines.map(l => l.split(/[,;\t]/).map(c => c.trim()));
+    parseExcelData(data);
+}
+
+function parseExcelData(data) {
+    if (data.length < 2) { alert('Arquivo inválido'); return; }
+    const header = data[0];
+    const numC = header.length - 1;
+    if (numC < 1) { alert('Nenhum critério'); return; }
+    state.numCriteria = numC;
+    state.criteriaNames = [];
+    for (let j=1;j<=numC;j++) state.criteriaNames.push(header[j]||`C${j}`);
+    const alts = data.slice(1).filter(r => r[0] && r[0].trim() !== '');
+    state.numAlternatives = alts.length;
+    if (state.numAlternatives < 2) { alert('Mínimo 2 alternativas'); return; }
+    state.alternativeNames = [];
+    state.matrix = [];
+    for (let i=0;i<alts.length;i++) {
+        state.alternativeNames.push(alts[i][0]||`A${i+1}`);
+        const row = [];
+        for (let j=1;j<=numC;j++) {
+            let v = parseFloat(alts[i][j]);
+            if (isNaN(v) || v < 1) v = 1; // Correção forçada (regra)
+            if (v > 5) v = 5;
+            row.push(Math.round(v));
+        }
+        state.matrix.push(row);
+    }
+    document.getElementById('numCriteria').value = state.numCriteria;
+    document.getElementById('numAlternatives').value = state.numAlternatives;
+    buildConfigInputs();
+    buildMatrix();
+    setInputMode('manual');translateUI();
+    alert(lang==='en'?'✅ File imported successfully! Please verify the values.':'✅ Arquivo importado com sucesso! Verifique os valores.');
+}
+
+// ==================== CÁLCULOS DOS MÉTODOS ====================
+
+function competitionRanks(items, scoreKey, asc) {
+    items.sort((a,b) => (asc ? a[scoreKey]-b[scoreKey] : b[scoreKey]-a[scoreKey]) || a.idx-b.idx);
+    items.forEach((item,p) => { item.position = p>0 && item[scoreKey]===items[p-1][scoreKey] ? items[p-1].position : p+1; });
+    return items;
+}
+function calcBorda(matrix, altNames) {
+    const sums = matrix.map(row => row.reduce((s,v)=>s+v,0));
+    const ranked = competitionRanks(sums.map((sum,idx)=>({idx,name:altNames[idx],sum})), 'sum',true);
+    return {method:'Borda',sums,ranked,winner:ranked[0],winners:ranked.filter(item=>item.sum===ranked[0].sum)};
+}
+// Comparação intracritério: na escala Condorcet/Copeland, maior nota = preferência.
+// A matriz é triangular superior: i < k contém +1, 0, -1; o oposto é -valor.
+function getCondorcetMatrices(matrix, orientation=getInputOrientation()) {
+    const n=matrix.length, m=matrix[0].length;
+    const invertedMatrix = orientation==='low' ? matrix.map(row => row.map(v=>6-v)) : matrix.map(row=>[...row]);
+    const intraMatrices = Array.from({length:m},()=>Array.from({length:n},()=>Array(n).fill('-')));
+    const decisionMatrix=Array.from({length:n},()=>Array(n).fill('-'));
+    const decisionFull=Array.from({length:n},()=>Array(n).fill(0));
+    const comparisonDetails=[];
+    for(let i=0;i<n;i++) for(let k=i+1;k<n;k++) {
+        const values=[];
+        for(let j=0;j<m;j++) {
+            const diff=invertedMatrix[i][j]-invertedMatrix[k][j];
+            const v=diff>0 ? 1 : diff<0 ? -1 : 0;
+            intraMatrices[j][i][k]=v;
+            values.push(v);
+        }
+        const sum=values.reduce((a,b)=>a+b,0);
+        const result=Math.sign(sum); // soma>0: +1; soma=0: 0; soma<0: -1
+        decisionMatrix[i][k]=result;
+        decisionFull[i][k]=result;
+        decisionFull[k][i]=-result;
+        comparisonDetails.push({i,k,values,sum,result});
+    }
+    return {invertedMatrix,intraMatrices,decisionMatrix,decisionFull,comparisonDetails,orientation};
+}
+function hasDominanceCycle(full) {
+    const n=full.length, visited=Array(n).fill(0);
+    function visit(i) {
+        visited[i]=1;
+        for(let k=0;k<n;k++) {
+            if(full[i][k]!==1)continue;
+            if(visited[k]===1)return true;
+            if(visited[k]===0 && visit(k))return true;
+        }
+        visited[i]=2;
+        return false;
+    }
+    return Array.from({length:n},(_,i)=>i).some(i=>visited[i]===0 && visit(i));
+}
+function calcCondorcet(matrix,altNames) {
+    const result=getCondorcetMatrices(matrix);
+    const n=matrix.length;
+    const wins=Array(n).fill(0), losses=Array(n).fill(0), ties=Array(n).fill(0);
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++)if(i!==k){
+        if(result.decisionFull[i][k]===1)wins[i]++;
+        else if(result.decisionFull[i][k]===-1)losses[i]++;
+        else ties[i]++;
+    }
+    const dominant=wins.findIndex(v=>v===n-1);
+    const dominated=losses.findIndex(v=>v===n-1);
+    const undefeated=losses.map((v,i)=>v===0?i:null).filter(v=>v!==null);
+    return {method:'Condorcet',...result,dominant,dominated,undefeated,wins,losses,ties,hasCycle:hasDominanceCycle(result.decisionFull),altNames};
+}
+function calcCopeland(matrix,altNames) {
+    const result=getCondorcetMatrices(matrix);
+    const n=matrix.length;
+    const wins=Array(n).fill(0), losses=Array(n).fill(0), ties=Array(n).fill(0);
+    for(const pair of result.comparisonDetails) {
+        const {i,k,result:v}=pair;
+        if(v===1){wins[i]++;losses[k]++;}
+        else if(v===-1){losses[i]++;wins[k]++;}
+        else{ties[i]++;ties[k]++;}
+    }
+    const scores=wins.map((v,i)=>v-losses[i]);
+    const ranked=competitionRanks(scores.map((score,idx)=>({idx,name:altNames[idx],score})), 'score',false);
+    return {method:'Copeland',...result,wins,losses,ties,scores,ranked,winner:ranked[0],winners:ranked.filter(x=>x.score===ranked[0].score)};
+}
+
+// ==================== CALCULAR ====================
+function calculateResults() {
+    document.querySelectorAll('#matrixContainer input').forEach(inp => inp.dispatchEvent(new Event('change')));
+    for (let i=0;i<state.numAlternatives;i++) {
+        for (let j=0;j<state.numCriteria;j++) {
+            if (!state.matrix[i] || !Number.isInteger(state.matrix[i][j]) || state.matrix[i][j]<1 || state.matrix[i][j]>5) {
+                alert(`${lang==='en'?'Fill in':'Preencha'} ${state.alternativeNames[i]} / ${state.criteriaNames[j]}`);
+                return;
+            }
+        }
+    }
+    const results = {};
+    if (state.selectedMethods.borda) results.borda = calcBorda(state.matrix, state.alternativeNames);
+    if (state.selectedMethods.condorcet) results.condorcet = calcCondorcet(state.matrix, state.alternativeNames);
+    if (state.selectedMethods.copeland) results.copeland = calcCopeland(state.matrix, state.alternativeNames);
+    state.results = results;
+    renderResults();
+    showScreen('screen-results');
+}
+
+// ==================== RENDER RESULTADOS ====================
+function renderResults() {
+    const r = state.results;
+    const tabs = [];
+    if (r.borda) tabs.push({id:'tab-borda', label:'<i class="fas fa-vote-yea"></i> Borda'});
+    if (r.condorcet) tabs.push({id:'tab-condorcet', label:'<i class="fas fa-chess-knight"></i> Condorcet'});
+    if (r.copeland) tabs.push({id:'tab-copeland', label:'<i class="fas fa-chart-bar"></i> Copeland'});
+
+    let tabHtml = '';
+    tabs.forEach((t,i)=>{ tabHtml += `<button type="button" role="tab" aria-selected="${i===0?'true':'false'}" class="tab ${i===0?'active':''}" data-tab="${t.id}" onclick="switchTab('${t.id}')">${t.label}</button>`; });
+    document.getElementById('resultTabs').innerHTML = tabHtml;
+
+    let html = '';
+
+    if (r.borda) {
+        html += `<div class="tab-content ${tabs[0].id==='tab-borda'?'active':''}" id="tab-borda">`;
+        html += renderBorda(r.borda);
+        html += `</div>`;
+    }
+    if (r.condorcet) {
+        html += `<div class="tab-content ${tabs[0].id==='tab-condorcet'?'active':''}" id="tab-condorcet">`;
+        html += renderCondorcet(r.condorcet);
+        html += `<div class="export-section"><button class="btn btn-info" onclick="downloadGraphAsImage()"><i class="fas fa-project-diagram"></i> Baixar apenas o Grafo</button></div>`;
+        html += `</div>`;
+    }
+    if (r.copeland) {
+        html += `<div class="tab-content ${tabs[0].id==='tab-copeland'?'active':''}" id="tab-copeland">`;
+        html += renderCopeland(r.copeland);
+        html += `</div>`;
+    }
+
+    document.getElementById('resultsContent').innerHTML = html;
+    updateMethodNavigation();
+    translateUI();
+}
+
+function switchTab(id) {
+    document.querySelectorAll('#resultTabs .tab').forEach(t=>{
+        const active=t.dataset.tab===id;
+        t.classList.toggle('active',active);
+        t.setAttribute('aria-selected',String(active));
+    });
+    document.querySelectorAll('#resultsContent .tab-content').forEach(c=>c.classList.toggle('active',c.id===id));
+    updateMethodNavigation();
+    translateUI();
+    document.getElementById('resultTabs').scrollIntoView({block:'start',behavior:'smooth'});
+}
+function nextMethod(){
+    const tabs=Array.from(document.querySelectorAll('#resultTabs .tab'));
+    if(tabs.length<2)return;
+    const current=tabs.findIndex(el=>el.classList.contains('active'));
+    switchTab(tabs[(current+1)%tabs.length].dataset.tab);
+}
+function updateMethodNavigation(){
+    const tabs=Array.from(document.querySelectorAll('#resultTabs .tab'));
+    const current=Math.max(0,tabs.findIndex(el=>el.classList.contains('active')));
+    const count=tabs.length;
+    const names={"tab-borda":"Borda","tab-condorcet":"Condorcet","tab-copeland":"Copeland"};
+    const currentName=count?names[tabs[current].dataset.tab]:'';
+    const nextName=count?names[tabs[(current+1)%count].dataset.tab]:'';
+    document.getElementById('resultStepLabel').textContent=lang==='en' ? `Method ${current+1} of ${count}: ${currentName}` : `Método ${current+1} de ${count}: ${currentName}`;
+    document.querySelectorAll('.next-method').forEach(el=>{
+        el.hidden=count<2;
+        el.style.display=count<2?'none':'';
+        el.innerHTML=`<i class="fas fa-arrow-right"></i> ${lang==='en' ? (current===count-1?'Back to':'Next method:') : (current===count-1?'Voltar para':'Próximo método:')} ${nextName}`;
+    });
+}
+
+// ==================== RENDER BORDA ====================
+function safeHTML(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function signed(v) {return v>0?'+1':v<0?'−1':'0';}
+function signClass(v){return v>0?'val-pos':v<0?'val-neg':'val-zero';}
+function coloredValue(v) {return `<span class="${signClass(v)}">${signed(v)}</span>`;}
+function stepHeader(num,title,text=''){
+    return `<h3 class="step-title"><span class="step-number">${num}</span>${title}</h3>` +
+        (text?`<p class="step-text">${text}</p>`:'');
+}
+function rawMatrix(title='') {
+    let h=title?`<h4 style="margin:12px 0;color:var(--blue-contrast)">${title}</h4>`:'';
+    h+='<div class="intra-matrix"><table><thead><tr><th>Alternativa</th>';
+    state.criteriaNames.forEach(c=>h+=`<th>${safeHTML(c)}</th>`);
+    h+='</tr></thead><tbody>';
+    state.matrix.forEach((row,i)=>{
+        h+=`<tr><th class="row-label">${safeHTML(state.alternativeNames[i])}</th>`;
+        row.forEach(v=>h+=`<td>${v}</td>`);
+        h+='</tr>';
+    });
+    return h+'</tbody></table></div>';
+}
+function effectiveMatrix(data) {
+    let h='<div class="intra-matrix"><table><tr><th>Alternativa</th>';
+    state.criteriaNames.forEach(c=>h+=`<th>${safeHTML(c)}</th>`);
+    h+='</tr>';
+    data.invertedMatrix.forEach((row,i)=>{
+        h+=`<tr><th class="row-label">${safeHTML(state.alternativeNames[i])}</th>`;
+        row.forEach(v=>h+=`<td>${v}</td>`);
+        h+='</tr>';
+    });
+    return h+'</table></div>';
+}
+function signLegend(){return '<div class="legend-pair"><span class="val-pos">+1: linha prefere à coluna</span><span class="val-zero">0: empate</span><span class="val-neg">−1: linha perde da coluna</span></div>';}
+function comparisonMatrix(mat, full=false) {
+    let h='<div class="intra-matrix"><table><tr><th>Alternativa</th>';
+    state.alternativeNames.forEach(c=>h+=`<th>${safeHTML(c)}</th>`);
+    h+='</tr>';
+    mat.forEach((row,i)=>{
+        h+=`<tr><th class="row-label">${safeHTML(state.alternativeNames[i])}</th>`;
+        row.forEach((v,k)=>{
+            if (i===k || (!full && i>k)) h+='<td class="dash">—</td>';
+            else h+=`<td class="${signClass(v)}">${signed(v)}</td>`;
+        });
+        h+='</tr>';
+    });
+    return h+'</table></div>';
+}
+function intraStep(r, includeExplanations=true) {
+    let h=signLegend();
+    for(let j=0;j<state.numCriteria;j++) {
+        h+=`<h4 style="color:var(--blue-contrast);margin-top:19px">Critério ${j+1}: ${safeHTML(state.criteriaNames[j])}</h4>`;
+        h+=comparisonMatrix(r.intraMatrices[j]);
+        if(includeExplanations) {
+            h+='<div class="comparison-list">';
+            r.comparisonDetails.forEach(pair=>{
+                const {i,k}=pair;
+                const ai=safeHTML(state.alternativeNames[i]), ak=safeHTML(state.alternativeNames[k]);
+                const left=r.invertedMatrix[i][j],right=r.invertedMatrix[k][j];
+                const op=left>right?'&gt;':left<right?'&lt;':'=';
+                h+=`<div class="comparison-chip">${ai} (${left}) ${op} ${ak} (${right}) ⇒ ${coloredValue(pair.values[j])}</div>`;
+            });
+            h+='</div>';
+        }
+    }
+    return h;
+}
+function pairAggregation(r) {
+    let h='<div class="intra-matrix"><table><tr><th>Confronto (linha × coluna)</th>';
+    state.criteriaNames.forEach(c=>h+=`<th>${safeHTML(c)}</th>`);
+    h+='<th>Soma</th><th>Decisão</th></tr>';
+    for(const pair of r.comparisonDetails) {
+        h+=`<tr><th class="row-label">${safeHTML(state.alternativeNames[pair.i])} × ${safeHTML(state.alternativeNames[pair.k])}</th>`;
+        pair.values.forEach(v=>h+=`<td class="${signClass(v)}">${signed(v)}</td>`);
+        h+=`<td><strong>${pair.sum>0?'+':''}${pair.sum}</strong></td><td class="${signClass(pair.result)}">${signed(pair.result)}</td></tr>`;
+    }
+    h+='</table></div>';
+    h+='<p class="lesson-note">Regra de agregação da aula: soma positiva ⇒ +1; soma nula ⇒ 0; soma negativa ⇒ −1. É o <strong>sinal da soma</strong>, e não a soma numérica bruta, que entra na matriz de decisão.</p>';
+    return h;
+}
+function resultCard(label,names,detail) {
+    return `<div class="winner"><h3><i class="fas fa-trophy"></i> ${label}</h3><div class="name">${names.map(safeHTML).join(' / ')}</div><p style="color:#d7e5f7">${detail}</p></div>`;
+}
+function renderBorda(r) {
+    let h='<div id="borda-content"><span class="method-badge method-borda">Método Borda</span>';
+    h+=stepHeader(1,'Matriz de entrada','As linhas são as alternativas; as colunas representam os critérios. Atribuímos de 1 a 5 conforme a escala de preferência.');
+    h+=rawMatrix();
+    h+=stepHeader(2,'Somar as notas de cada alternativa','Para cada alternativa, somamos suas notas em todos os critérios:');
+    // Fórmula matemática de Borda: LaTeX S(A_i) = \sum_{j=1}^{m} x_{ij}.
+    // MathML apresenta a notação matemática formatada sem bibliotecas adicionais.
+    h+=`<div class="formula-block borda-formula" aria-label="Fórmula da soma de Borda">
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+            <mrow><mi>S</mi><mo>(</mo><msub><mi>A</mi><mi>i</mi></msub><mo>)</mo><mo>=</mo>
+            <munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>m</mi></munderover>
+            <msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow>
+        </math>
+    </div>`;
+    for(let i=0;i<state.numAlternatives;i++){
+        const expr=state.matrix[i].join(' + ');
+        h+=`<div class="formula-block"><strong>${safeHTML(state.alternativeNames[i])}</strong>: ${expr} = <strong>${r.sums[i]}</strong></div>`;
+    }
+    h+=stepHeader(3,'Ordenar as alternativas e apresentar o resultado');
+    h+='<div class="intra-matrix"><table><tr><th>Alternativa</th><th>Soma</th><th>Posição</th></tr>';
+    r.ranked.forEach(item=>h+=`<tr><th class="row-label">${safeHTML(item.name)}</th><td>${item.sum}</td><td>${item.position}º</td></tr>`);
+    h+='</table></div>';
+    h+=resultCard(r.winners.length>1?'Alternativas empatadas em primeiro':'Alternativa vencedora',r.winners.map(x=>x.name),`Menor soma = ${r.winner.sum}`);
+    return h+'</div>';
+}
+function orientationExplanation(r) {
+    if(r.orientation==='low')return '';
+    return '<p class="step-text">A matriz já utiliza diretamente a escala de Condorcet/Copeland da aula: <strong>5 = melhor; 1 = pior</strong>. Nenhuma inversão é necessária.</p>';
+}
+function renderCondorcet(r) {
+    let h='<div id="condorcet-content"><span class="method-badge method-condorcet">Método Condorcet</span>';
+    h+=stepHeader(1,'Construir a matriz de entrada');
+    h+=rawMatrix();
+    h+=stepHeader(2,'Conferir a direção da escala (5 é melhor)');
+    h+=orientationExplanation(r)+effectiveMatrix(r);
+    h+=stepHeader(3,'Executar as comparações intracritério', 'Dentro de cada critério, comparar cada par de alternativas. +1 indica preferência pela alternativa da linha; −1 indica derrota; 0 indica igualdade.');
+    h+=intraStep(r,true);
+    h+=stepHeader(4,'Somar os resultados dos critérios para cada par','Somar os sinais obtidos em todos os critérios. Aplicar a regra de sinal (+, 0, −) para transformar cada soma em +1, 0 ou −1.');
+    h+=pairAggregation(r);
+    h+=stepHeader(5,'Construir a matriz agregada de decisão','A matriz triangular superior abaixo corresponde aos confrontos da aula. Para interpretar o confronto na ordem inversa, troca-se o sinal.');
+    h+=comparisonMatrix(r.decisionMatrix);
+    h+=stepHeader(6,'Interpretar o grafo e obter o resultado','A seta A → B significa que A venceu B na comparação agregada. Empates (0) não geram seta.');
+    h+=`<div id="graph-export-area">${renderGraph(r)}</div>`;
+    h+='<div class="intra-matrix"><table><tr><th>Alternativa</th><th>Vitórias</th><th>Derrotas</th><th>Empates</th></tr>';
+    r.altNames.forEach((name,i)=>h+=`<tr><th class="row-label">${safeHTML(name)}</th><td class="val-pos">${r.wins[i]}</td><td class="val-neg">${r.losses[i]}</td><td class="val-zero">${r.ties[i]}</td></tr>`);
+    h+='</table></div>';
+    if(r.dominant>=0)h+=resultCard('Vencedor de Condorcet',[r.altNames[r.dominant]],`Venceu todas as outras ${r.altNames.length-1} alternativas por maioria dos critérios.`);
+    else{
+        let msg=r.hasCycle?'Existe um ciclo de preferência (paradoxo de Condorcet).':'Não existe alternativa que vença estritamente todas as demais; há confronto(s) empatado(s) ou relações incompletas.';
+        h+=`<div class="info-box warning"><strong>Não há vencedor estrito de Condorcet.</strong> ${msg} O método não autoriza escolher arbitrariamente uma alternativa como vencedora.</div>`;
+        if(r.undefeated.length)h+=`<p class="lesson-note">Alternativas sem derrota (mas sem vitória sobre todas): ${r.undefeated.map(i=>safeHTML(r.altNames[i])).join(', ')}.</p>`;
+    }
+    if(r.dominated>=0) h+=`<p class="lesson-note">Alternativa derrotada por todas as demais: <strong>${safeHTML(r.altNames[r.dominated])}</strong>.</p>`;
+    return h+'</div>';
+}
+function renderCopeland(r) {
+    let h='<div id="copeland-content"><span class="method-badge method-copeland">Método Copeland</span>';
+    h+=stepHeader(1,'Preparar a matriz de decisão e a escala');
+    h+=rawMatrix();h+=orientationExplanation(r);h+=effectiveMatrix(r);
+    h+=stepHeader(2,'Comparar alternativas dentro de cada critério','Para cada par de alternativas, a melhor recebe +1, a pior −1, e avaliações iguais recebem 0.');
+    h+=intraStep(r,true);
+    h+=stepHeader(3,'Agregar as comparações par a par','Somam-se os resultados de todos os critérios e conserva-se apenas o sinal da soma: +1, 0 ou −1.');
+    h+=pairAggregation(r);
+    h+=stepHeader(4,'Construir a matriz completa de Copeland','A parte inferior é o inverso da parte superior: se A₁ perde de A₂ (−1), então A₂ vence A₁ (+1). As diagonais não entram na contagem.');
+    h+=signLegend()+comparisonMatrix(r.decisionFull,true);
+    h+=stepHeader(5,'Contar vitórias, derrotas e calcular a pontuação','Cada +1 por linha é uma vitória; cada −1 é uma derrota; cada 0, um empate. A pontuação é a soma da linha, equivalente a vitórias − derrotas.');
+    h+='<div class="legend-pair"><span class="val-pos"><strong>V = Vitórias</strong></span><span class="val-neg"><strong>D = Derrotas</strong></span><span>V − D = pontuação de Copeland</span></div>';
+    r.wins.forEach((w,i)=>{
+        const l=r.losses[i],score=r.scores[i];
+        h+=`<div class="formula-block"><strong>${safeHTML(state.alternativeNames[i])}</strong>: ${w} vitória(s) − ${l} derrota(s) = <strong class="${signClass(score)}">${score>0?'+':''}${score}</strong> &nbsp;(${r.ties[i]} empate(s))</div>`;
+    });
+    h+=stepHeader(6,'Ordenar o ranking e identificar o resultado','Quanto <strong>maior</strong> a pontuação de Copeland, melhor a posição. Pontuações iguais permanecem empatadas.');
+    h+='<div class="intra-matrix"><table><tr><th>Alternativa</th><th>Vitórias (+1)</th><th>Derrotas (−1)</th><th>Empates (0)</th><th>V − D</th><th>Posição</th></tr>';
+    r.ranked.forEach(x=>h+=`<tr><th class="row-label">${safeHTML(x.name)}</th><td class="val-pos">${r.wins[x.idx]}</td><td class="val-neg">${r.losses[x.idx]}</td><td class="val-zero">${r.ties[x.idx]}</td><td class="${signClass(x.score)}">${x.score>0?'+':''}${x.score}</td><td>${x.position}º</td></tr>`);
+    h+='</table></div>';
+    h+=resultCard(r.winners.length>1?'Empate na primeira posição de Copeland':'Vencedor de Copeland',r.winners.map(x=>x.name),`Maior pontuação = ${r.winner.score>0?'+':''}${r.winner.score}`);
+    return h+'</div>';
+}
+
+// ==================== GRAFO CORRIGIDO ====================
+function renderGraph(r) {
+    const n = state.numAlternatives;
+    const size = 550;
+    const center = size/2;
+    const radius = size*0.35;
+    const positions = [];
+    for (let i=0;i<n;i++) {
+        const angle = (2*Math.PI*i)/n - Math.PI/2;
+        positions.push({ x: center + radius*Math.cos(angle), y: center + radius*Math.sin(angle) });
+    }
+
+    let h = `<div class="graph-container" style="max-width:${size}px;aspect-ratio:1/1;height:auto">`;
+    h += `<svg class="graph-edges" viewBox="0 0 ${size} ${size}">`;
+    h += `<defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a3d0ff"/></marker>
+    <marker id="arr-dom" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker>
+    </defs>`;
+
+    // Desenha as setas
+    for (let i=0;i<n;i++) {
+        for (let k=0;k<n;k++) {
+            if (i === k) continue;
+            let isDominant = false;
+            // Lê a matriz de decisão corretamente (triangular superior ou inferior)
+            if (i < k) isDominant = (r.decisionMatrix[i][k] === 1);
+            else isDominant = (r.decisionMatrix[k][i] === -1); 
+            
+            if (isDominant) {
+                const from = positions[i], to = positions[k];
+                const dx = to.x - from.x, dy = to.y - from.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const ratio = 45 / dist;
+                const x1 = from.x + dx*ratio, y1 = from.y + dy*ratio;
+                const x2 = to.x - dx*ratio, y2 = to.y - dy*ratio;
+
+                let color = '#a3d0ff';
+                let marker = 'arr';
+                if (r.dominant === i) { color = '#fbbf24'; marker = 'arr-dom'; }
+
+                h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="2" opacity="0.8" marker-end="url(#${marker})"/>`;
+            }
+        }
+    }
+    h += `</svg>`;
+
+    // Desenha os nós
+    for (let i=0;i<n;i++) {
+        const p = positions[i];
+        let cls = 'graph-node';
+        if (r.dominant === i) cls += ' dominant';
+        if (r.dominated === i) cls += ' dominated';
+        h += `<div class="${cls}" style="left:${(p.x/size*100).toFixed(2)}%;top:${(p.y/size*100).toFixed(2)}%" title="${safeHTML(state.alternativeNames[i])}"><div>${safeHTML(state.alternativeNames[i])}</div></div>`;
+    }
+    h += `</div>`;
+    
+    h += `<div class="info-box" style="display:flex;flex-wrap:wrap;gap:15px;justify-content:center">
+    <span><i class="fas fa-circle" style="color:#fbbf24"></i> Dominante</span>
+    <span><i class="fas fa-circle" style="color:var(--accent-blue-dark)"></i> Dominado</span>
+    <span><i class="fas fa-circle" style="color:var(--accent-blue)"></i> Neutro</span>
+    <span><i class="fas fa-arrow-right"></i> Direção da dominância</span>
+    </div>`;
+    return h;
+}
+
+// ==================== EXPORTAÇÃO ====================
+async function downloadGraphAsImage() {
+    const el = document.querySelector('.graph-container');
+    if (!el) return alert(lang==='en'?'Graph not found':'Grafo não encontrado');
+    try {
+        const canvas = await html2canvas(el.parentElement, { backgroundColor: '#0f172a', scale: 2, useCORS: true });
+        const link = document.createElement('a');
+        link.download = `Grafo_Condorcet_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (e) { alert('Erro ao gerar imagem: ' + e.message); }
+}
+
+async function captureMethod(el) {
+    const was=el.style.display;
+    el.style.display='block';
+    try {return await html2canvas(el,{backgroundColor:'#10203a',scale:1.6,useCORS:true,logging:false});}
+    finally {el.style.display=was;}
+}
+async function downloadAllAsImage() {
+    try {
+        const targets=[['Borda','borda-content'],['Condorcet','condorcet-content'],['Copeland','copeland-content']];
+        for(const [name,id] of targets) {
+            const el=document.getElementById(id);
+            if(!el)continue;
+            const canvas=await captureMethod(el.parentElement);
+            const link=document.createElement('a');
+            link.download=`TriDecision_${name}_${Date.now()}.png`;
+            link.href=canvas.toDataURL('image/png');
+            link.click();
+        }
+    } catch(e) {alert('Não foi possível gerar as imagens: '+e.message);}
+}
+async function downloadAllAsPDF() {
+    try {
+        if(!window.jspdf || !window.html2canvas)throw new Error('Bibliotecas de exportação não carregaram. Verifique a conexão de internet.');
+        const {jsPDF}=window.jspdf;
+        const doc=new jsPDF('p','mm','a4');
+        const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+        let first=true;
+        const targets=[['Borda','borda-content'],['Condorcet','condorcet-content'],['Copeland','copeland-content']];
+        for(const [name,id] of targets){
+            const el=document.getElementById(id);
+            if(!el)continue;
+            const canvas=await captureMethod(el.parentElement);
+            const m=12, maxW=pw-2*m, maxH=ph-2*m, srcPageHeight=Math.floor(canvas.width*maxH/maxW);
+            for(let y=0;y<canvas.height;y+=srcPageHeight) {
+                if(!first)doc.addPage();
+                first=false;
+                const slice=document.createElement('canvas');
+                slice.width=canvas.width;
+                slice.height=Math.min(srcPageHeight,canvas.height-y);
+                slice.getContext('2d').drawImage(canvas,0,y,canvas.width,slice.height,0,0,canvas.width,slice.height);
+                doc.addImage(slice.toDataURL('image/jpeg',.9),'JPEG',m,m,maxW,slice.height*maxW/canvas.width);
+            }
+        }
+        if(first) throw new Error('Não há resultados calculados para exportar.');
+        doc.save(`TriDecision_Passo_a_Passo_${Date.now()}.pdf`);
+    } catch(e){alert('Não foi possível gerar o PDF: '+e.message);}
+}
+
+// ==================== BILINGUAL INTERFACE ====================
+let lang='pt';
+const citationRef='DINIZ, Bruno Pereira; PEREIRA, Daniel Augusto de Moura; SANTOS, Marcos dos. Tri-Decision-BorDeLand web (v.1) 2026.';
+function copyCitation(){
+    const message=document.getElementById('copyMessage');
+    const ok=()=>{message.textContent=lang==='en'?'Citation copied!':'Citação copiada!';};
+    if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(citationRef).then(ok).catch(()=>fallbackCopy());
+    else fallbackCopy();
+    function fallbackCopy(){
+        const el=document.createElement('textarea');el.value=citationRef;el.style.position='fixed';el.style.opacity='0';document.body.appendChild(el);
+        el.select();try{document.execCommand('copy');ok();}catch(e){message.textContent=lang==='en'?'Select and copy the citation above.':'Selecione e copie a citação acima.';}el.remove();
+    }
+}
+const translations={
+    // Main pages
+    'Framework de Apoio à Decisão Multicritério — Borda • Condorcet • Copeland':'Multicriteria Decision Support Framework — Borda • Condorcet • Copeland',
+    'Escolha o Modo de Aplicação':'Choose an Analysis Mode',
+    'Método Individual':'Single Method',
+    'Aplique um método por vez (Borda, Condorcet ou Copeland)':'Apply one method at a time (Borda, Condorcet, or Copeland)',
+    'Os Três Métodos':'All Three Methods',
+    'Execute Borda, Condorcet e Copeland simultaneamente':'Run Borda, Condorcet, and Copeland together',
+    'Tutorial rápido: como utilizar':'Quick Start Guide',
+    'Escolha o modo':'Select a mode',
+    'Selecione um método ou analise os três em conjunto.':'Choose one method or analyze all three together.',
+    'Configure o problema':'Set up the problem',
+    'Informe quantos critérios e alternativas existem e atribua seus nomes.':'Enter the number of criteria and alternatives and name them.',
+    'Preencha a matriz':'Fill in the decision matrix',
+    'Digite notas de 1 a 5, importe um Excel ou use o exemplo da aula. Confira a direção da escala.':'Enter scores from 1 to 5, import Excel, or load the class example. Check the scale direction.',
+    'Consulte os resultados':'Review the results',
+    'Veja o cálculo passo a passo. Use “Próximo método” para navegar e exporte o PDF ou as imagens.':'Follow each calculation step by step. Use “Next method” to navigate and export a PDF or images.',
+    'Instituições':'Institutions',
+    'Universidade Federal Fluminense':'Fluminense Federal University',
+    'Universidade Federal de Campina Grande':'Federal University of Campina Grande',
+    'Uso acadêmico e citação da ferramenta':'Academic Use and Citation',
+    'Todos os direitos reservados. O uso não comercial (acadêmico) desta planilha é gratuito. A única coisa que se pede em troca é citar esta ferramenta quando os resultados forem utilizados em publicações.':'All rights reserved. Non-commercial (academic) use of this tool is free of charge. The only requirement is to cite this tool when its results are used in publications.',
+    'Para citar a fonte:':'How to cite this tool:',
+    'Copiar citação':'Copy citation',
+    'Selecione o Método':'Select a Method',
+    'Escolha qual método multicritério deseja aplicar. Cada método possui uma lógica própria de ordenação.':'Choose the multicriteria method to apply. Each method has its own ranking logic.',
+    'Soma dos pontos. A alternativa com':'Sum of scores. The alternative with the',
+    'menor':'lowest',
+    'soma vence.':'total wins.',
+    'Comparação par a par, por critério, e':'Pairwise comparisons by criterion and a',
+    'grafo de dominância':'dominance graph',
+    'Diferença vitórias − derrotas. A':'Wins minus losses. The',
+    'maior':'higher',
+    'pontuação vence.':'score wins.',
+    'Voltar':'Back',
+    'Confirmar e Avançar':'Confirm and Continue',
+    'Configuração do Problema':'Problem Setup',
+    'Configuração':'Configuration',
+    'Matriz':'Matrix',
+    'Resultados':'Results',
+    'Número de Critérios':'Number of Criteria',
+    'Número de Alternativas':'Number of Alternatives',
+    'Nomes dos Critérios':'Criterion Names',
+    'Nomes das Alternativas':'Alternative Names',
+    'Avançar':'Continue',
+    'Carregar exemplo':'Load example',
+    'Limpar configuração':'Clear setup',
+    'Limpar aplicação':'Clear application',
+    'Matriz de Decisão':'Decision Matrix',
+    'Métodos selecionados:':'Selected methods:',
+    'Escala de avaliação:':'Rating scale:',
+    'Utilize notas inteiras de':'Use integer scores from',
+    'para cada alternativa em cada critério.':'for each alternative under each criterion.',
+    'Modo de Preenchimento':'Data Entry Mode',
+    'Manual':'Manual',
+    'Importar Excel':'Import Excel',
+    'Baixar Modelo Excel':'Download Excel Template',
+    'Carregar exemplo da aula':'Load Class Example',
+    'Clique para selecionar um arquivo Excel (.xlsx, .xls) ou CSV':'Click to select an Excel (.xlsx, .xls) or CSV file',
+    'Formato esperado:':'Expected format:',
+    'A primeira linha deve conter os nomes dos critérios (C1, C2, ...). A primeira coluna deve conter os nomes das alternativas (A1, A2, ...). As células internas devem conter notas de 1 a 5.':'The first row must contain criterion names (C1, C2, ...), and the first column must contain alternative names (A1, A2, ...). Inner cells must contain scores from 1 to 5.',
+    'Linha 1:':'Row 1:',
+    'Linha 2:':'Row 2:',
+    'Preencha a Matriz':'Fill in the Matrix',
+    'Limpar matriz':'Clear matrix',
+    'Calcular Resultados':'Calculate Results',
+    'Baixar PDF Completo':'Download Full PDF',
+    'Baixar Imagens':'Download Images',
+    'Voltar à Matriz':'Back to Matrix',
+    'Nova Análise':'New Analysis',
+    'Próximo método':'Next method',
+    'Baixar apenas o Grafo':'Download Graph Only',
+    // Scale and examples
+    'Muito importante / melhor':'Very important / best',
+    'Importante':'Important',
+    'Moderado':'Moderate',
+    'Às vezes importante':'Sometimes important',
+    'Não é importante / pior':'Not important / worst',
+    'Nesta entrada, 1 é melhor e 5 é pior (escala Borda).':'For this input, 1 is best and 5 is worst (Borda scale).',
+    'Nesta entrada, 5 é melhor e 1 é pior (escala Condorcet/Copeland).':'For this input, 5 is best and 1 is worst (Condorcet/Copeland scale).',
+    'Exemplo da aula: Borda':'Class example: Borda',
+    'Exemplo da aula: Condorcet / Copeland':'Class example: Condorcet / Copeland',
+    'Muito importante / melhor':'Very important / best',
+    'Alternativa / Critério':'Alternative / Criterion',
+    'Alternativa/Critério':'Alternative/Criterion',
+    '1 a 5':'1 to 5',
+    'Alternativa':'Alternative',
+    'Critério':'Criterion',
+    'Custo':'Cost',
+    'Câmera':'Camera',
+    'Armazenamento':'Storage',
+    'Duração da Bateria':'Battery life',
+    'Iphone':'iPhone',
+    // Outcome explanation headings
+    'Método Borda':'Borda Method',
+    'Método Condorcet':'Condorcet Method',
+    'Método Copeland':'Copeland Method',
+    'Matriz de entrada':'Input matrix',
+    'As linhas são as alternativas; as colunas representam os critérios. Atribuímos de 1 a 5 conforme a escala de preferência.':'Rows are alternatives and columns are criteria. Assign values from 1 to 5 according to the preference scale.',
+    'Somar as notas de cada alternativa':'Add up the scores for each alternative',
+    'Para cada alternativa, somamos suas notas em todos os critérios:':'For each alternative, add the scores across all criteria:',
+    'Ordenar as alternativas e apresentar o resultado':'Rank the alternatives and present the outcome',
+    'Soma':'Sum',
+    'Posição':'Rank',
+    'Alternativas empatadas em primeiro':'Alternatives tied for first',
+    'Alternativa vencedora':'Winning alternative',
+    'Construir a matriz de entrada':'Build the input matrix',
+    'Conferir a direção da escala (5 é melhor)':'Check the scale direction (5 is best)',
+    '6 − nota':'6 − score',
+    'No strict winner':'No strict winner',
+    'A matriz já utiliza diretamente a escala de Condorcet/Copeland da aula:':'The matrix already follows the class Condorcet/Copeland scale:',
+    '5 = melhor; 1 = pior':'5 = best; 1 = worst',
+    '. Nenhuma inversão é necessária.':'. No conversion is needed.',
+    'Executar as comparações intracritério':'Run within-criterion comparisons',
+    'Dentro de cada critério, comparar cada par de alternativas. +1 indica preferência pela alternativa da linha; −1 indica derrota; 0 indica igualdade.':'Within each criterion, compare every pair of alternatives. +1 means the row alternative is preferred; −1 means it loses; 0 means a tie.',
+    'Somar os resultados dos critérios para cada par':'Add the criterion results for each pair',
+    'Somar os sinais obtidos em todos os critérios. Aplicar a regra de sinal (+, 0, −) para transformar cada soma em +1, 0 ou −1.':'Add the signs across all criteria. Apply the sign rule (+, 0, −) to convert the total to +1, 0, or −1.',
+    'Construir a matriz agregada de decisão':'Build the aggregated decision matrix',
+    'A matriz triangular superior abaixo corresponde aos confrontos da aula. Para interpretar o confronto na ordem inversa, troca-se o sinal.':'The upper triangular matrix below shows the pairwise comparisons. Reverse the sign to interpret the comparison in the opposite order.',
+    'Interpretar o grafo e obter o resultado':'Interpret the graph and determine the outcome',
+    'A seta A → B significa que A venceu B na comparação agregada. Empates (0) não geram seta.':'An arrow A → B means that A beat B in the aggregate comparison. Ties (0) do not produce arrows.',
+    'Vitórias':'Wins',
+    'Derrotas':'Losses',
+    'Empates':'Ties',
+    'V = Vitórias':'V = Victories',
+    'D = Derrotas':'D = Defeats',
+    'V − D = pontuação de Copeland':'V − D = Copeland score (victories − defeats)',
+    'Vencedor de Condorcet':'Condorcet winner',
+    'Não há vencedor estrito de Condorcet.':'There is no strict Condorcet winner.',
+    'Existe um ciclo de preferência (paradoxo de Condorcet).':'A preference cycle exists (Condorcet paradox).',
+    'Não existe alternativa que vença estritamente todas as demais; há confronto(s) empatado(s) ou relações incompletas.':'No alternative strictly beats every other alternative; some pairwise comparisons are tied or incomplete.',
+    'O método não autoriza escolher arbitrariamente uma alternativa como vencedora.':'The method does not justify arbitrarily declaring an alternative the winner.',
+    'Preparar a matriz de decisão e a escala':'Prepare the decision matrix and scale',
+    'Comparar alternativas dentro de cada critério':'Compare alternatives within each criterion',
+    'Para cada par de alternativas, a melhor recebe +1, a pior −1, e avaliações iguais recebem 0.':'For each pair, the better alternative receives +1, the worse −1, and equal evaluations receive 0.',
+    'Agregar as comparações par a par':'Aggregate the pairwise comparisons',
+    'Somam-se os resultados de todos os critérios e conserva-se apenas o sinal da soma: +1, 0 ou −1.':'Add the results over all criteria and retain only the sign: +1, 0, or −1.',
+    'Construir a matriz completa de Copeland':'Build the full Copeland matrix',
+    'A parte inferior é o inverso da parte superior: se A₁ perde de A₂ (−1), então A₂ vence A₁ (+1). As diagonais não entram na contagem.':'The lower triangle is the inverse of the upper: if A₁ loses to A₂ (−1), then A₂ beats A₁ (+1). Diagonal cells are excluded.',
+    'Contar vitórias, derrotas e calcular a pontuação':'Count wins and losses and calculate the score',
+    'Cada +1 por linha é uma vitória; cada −1 é uma derrota; cada 0, um empate. A pontuação é a soma da linha, equivalente a vitórias − derrotas.':'Each +1 in a row is a win, each −1 a loss, and each 0 a tie. The row sum equals wins minus losses.',
+    'Ordenar o ranking e identificar o resultado':'Sort the ranking and identify the winner',
+    'Quanto':'The',
+    'a pontuação de Copeland, melhor a posição. Pontuações iguais permanecem empatadas.':'the Copeland score, the better the rank. Equal scores share the same position.',
+    'Vitórias (+1)':'Wins (+1)',
+    'Derrotas (−1)':'Losses (−1)',
+    'Empates (0)':'Ties (0)',
+    'V − D':'V − D',
+    'Empate na primeira posição de Copeland':'Tie for first place in Copeland',
+    'Vencedor de Copeland':'Copeland winner',
+    'Confronto (linha × coluna)':'Pairwise match (row × column)',
+    'Decisão':'Decision',
+    'Regra de agregação da aula: soma positiva ⇒ +1; soma nula ⇒ 0; soma negativa ⇒ −1. É o':'Class aggregation rule: positive sum ⇒ +1; zero sum ⇒ 0; negative sum ⇒ −1. It is the',
+    'sinal da soma':'sign of the sum',
+    ', e não a soma numérica bruta, que entra na matriz de decisão.':', not the raw numerical total, that enters the decision matrix.',
+    '+1: linha prefere à coluna':'+1: row beats column',
+    '0: empate':'0: tie',
+    '−1: linha perde da coluna':'−1: row loses to column',
+    'Dominante':'Dominant',
+    'Dominado':'Dominated',
+    'Neutro':'Neutral',
+    'Direção da dominância':'Direction of dominance',
+    'Sem vencedor estrito':'No strict winner',
+};
+const nodeOriginal=new WeakMap();
+const attrOriginal=new WeakMap();
+function translateDynamicText(raw){
+    const trimmed=raw.trim();
+    if(!trimmed)return raw;
+    let converted=translations[trimmed];
+    if(converted===undefined){
+        converted=trimmed
+          .replace(/^Critério (\d+): /,'Criterion $1: ')
+          .replace(/^Critério (\d+)$/,'Criterion $1')
+          .replace(/^Alternativa\/Critério /,'Alternative/Criterion ').replace(/Iphone/g,'iPhone')
+          .replace(/^(\d+)º$/,(_,n)=>{const x=Number(n);return n+((x%100>=11&&x%100<=13)?'th':x%10===1?'st':x%10===2?'nd':x%10===3?'rd':'th');})
+          .replace(/Custo/g,'Cost').replace(/Câmera/g,'Camera').replace(/Armazenamento/g,'Storage').replace(/Duração da Bateria/g,'Battery life')
+          .replace(/^Alternativa (\d+)$/,'Alternative $1')
+          .replace(/^Menor soma = /,'Lowest total = ')
+          .replace(/^Maior pontuação = /,'Highest score = ')
+          .replace(/^Venceu todas as outras (\d+) alternativas por maioria dos critérios\.$/,'Beat all other $1 alternatives by a majority of criteria.')
+          .replace(/^Alternativas sem derrota \(mas sem vitória sobre todas\): /,'Undefeated alternatives (without beating all others): ')
+          .replace(/^Alternativa derrotada por todas as demais: /,'Alternative defeated by all others: ')
+          .replace(/ vitória\(s\) − /g,' win(s) − ')
+          .replace(/derrota\(s\) =/g,'loss(es) =')
+          .replace(/ empate\(s\)/g,' tie(s)');
+    }
+    if(converted===trimmed)return raw;
+    return raw.slice(0,raw.indexOf(trimmed))+converted+raw.slice(raw.indexOf(trimmed)+trimmed.length);
+}
+function translateUI(){
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(node){return (node.parentElement && !['SCRIPT','STYLE','NOSCRIPT'].includes(node.parentElement.tagName))?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});
+    let node;
+    while((node=walker.nextNode())){
+        if(!nodeOriginal.has(node))nodeOriginal.set(node,node.nodeValue);
+        const pt=nodeOriginal.get(node);
+        node.nodeValue=lang==='en'?translateDynamicText(pt):pt;
+    }
+    document.querySelectorAll('[placeholder],[title]').forEach(el=>{
+        if(!attrOriginal.has(el))attrOriginal.set(el,{title:el.getAttribute('title'),placeholder:el.getAttribute('placeholder')});
+        const o=attrOriginal.get(el);
+        if(o.title!==null)el.setAttribute('title',lang==='en'?translateDynamicText(o.title):o.title);
+        if(o.placeholder!==null)el.setAttribute('placeholder',lang==='en'?translateDynamicText(o.placeholder):o.placeholder);
+    });
+    document.documentElement.lang=lang==='en'?'en-GB':'pt-BR';
+    document.title=lang==='en'?'Tri-Decision-BorDeLand web | Decision Support':'Tri-Decision-BorDeLand web | Apoio à Decisão';
+}
+function setLanguage(which){
+    if(!['pt','en'].includes(which))return;
+    lang=which;
+    document.getElementById('lang-pt').classList.toggle('selected',lang==='pt');
+    document.getElementById('lang-en').classList.toggle('selected',lang==='en');
+    document.getElementById('lang-pt').setAttribute('aria-pressed',String(lang==='pt'));
+    document.getElementById('lang-en').setAttribute('aria-pressed',String(lang==='en'));
+    translateUI();
+    updateMethodNavigation();
+}
+
+// ==================== INIT ====================
+window.onload = function() {
+    initState();
+    buildConfigInputs();
+    setInputMode('manual');
+    setLanguage('pt');
+};
+</script>
+</body>
+</html>
